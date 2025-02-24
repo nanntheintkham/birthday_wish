@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn game.wsgi --log-file
+web: python manage.py migrate && gunicorn birthday_wishes.wsgi --log-file
