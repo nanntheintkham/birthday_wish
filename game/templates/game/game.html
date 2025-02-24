@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Birthday Wishes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.6.0/confetti.browser.min.js"></script>
+    <style>
+    .animated-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: -1;
+        background: linear-gradient(45deg, #ffe6f2, #ffd1dc, #ffb6c1);
+        animation: gradient 15s ease infinite;
+    }
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .message {
+        font-size: 1.4em;
+        margin: 20px 0;
+        line-height: 1.6;
+        text-align: center;
+        white-space: pre-line;
+        color: #ff69b4;
+        font-family: 'Comic Sans MS', cursive;
+        text-shadow: 1px 1px 2px rgba(255, 105, 180, 0.3);
+    }
+
+    .sticker {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        pointer-events: none;
+        z-index: 100;
+        animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(10deg); }
+    }
+
+    body {
+        background-color: #ffe6f2;
+        font-family: 'Comic Sans MS', cursive;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .game-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 40px;
+        border-radius: 25px;
+        box-shadow: 0 0 30px rgba(255, 182, 193, 0.3);
+        text-align: center;
+        max-width: 600px;
+        position: relative;
+        z-index: 1;
+        border: 3px solid #ffd1dc;
+    }
+
+    .choice-btn {
+        background: linear-gradient(45deg, #ff69b4, #ff8da1);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        margin: 10px;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1.1em;
+        font-family: 'Comic Sans MS', cursive;
+        box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+    }
+
+    .choice-btn:hover {
+        transform: scale(1.1) rotate(-2deg);
+        box-shadow: 0 6px 20px rgba(255, 105, 180, 0.5);
+        background: linear-gradient(45deg, #ff8da1, #ff69b4);
+    }
+
+    .heart {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background-color: #ff8da1;
+        clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 50% 80%, 20% 100%, 0% 35%);
+        animation: floatHeart 4s ease-in-out infinite;
+        opacity: 0.8;
+    }
+    </style>
+</head>
+<body>
+    <div class="animated-background"></div>
+    <div class="game-container">
+        <div class="message" id="message"></div>
+        <div id="choices"></div>
+    </div>
+
+    <script>
+    const stickers = ['❤️', '🎀', '⭐', '🎈', '🎁', '🍰'];
+
+    function addSticker() {
+        const sticker = document.createElement('div');
+        sticker.className = 'sticker';
+        sticker.innerHTML = stickers[Math.floor(Math.random() * stickers.length)];
+        sticker.style.left = Math.random() * window.innerWidth + 'px';
+        sticker.style.top = Math.random() * window.innerHeight + 'px';
+        document.body.appendChild(sticker);
+
+        setTimeout(() => sticker.remove(), 4000);
+    }
+
+    function triggerConfetti() {
+        const duration = 3000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, {
+                particleCount,
+                origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 }
+            }));
+        }, 250);
+    }
+
+    function typeMessage(message, elementId, callback) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = ''; // Use innerHTML to preserve spaces and line breaks
+        let i = 0;
+
+        function type() {
+            if (i < message.length) {
+                // Append characters, including spaces and line breaks
+                const char = message.charAt(i);
+                if (char === '\n') {
+                    element.innerHTML += '<br>'; // Add a line break for '\n'
+                } else {
+                    element.innerHTML += char;
+                }
+                i++;
+                setTimeout(type, 50); // Adjust typing speed here
+            } else if (callback) {
+                callback();
+            }
+        }
+
+        type();
+    }
+
+    function getDialogue(id) {
+        fetch(`/dialogue/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            const choicesDiv = document.getElementById('choices');
+            choicesDiv.innerHTML = '';
+
+            typeMessage(data.message, 'message', () => {
+                data.choices.forEach(choice => {
+                    const button = document.createElement('button');
+                    button.className = 'choice-btn';
+                    button.innerText = choice.text;
+                    button.onclick = () => {
+                        if (choice.text.includes('Make a wish')) {
+                            triggerConfetti();
+                            setInterval(addSticker, 500);
+                        }
+                        getDialogue(choice.next);
+                    };
+                    choicesDiv.appendChild(button);
+                });
+            });
+        });
+    }
+
+    getDialogue(1);
+    </script>
+</body>
+</html>
