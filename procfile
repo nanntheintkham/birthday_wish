@@ -1,2 +1,1 @@
-web: gunicorn game.wsgi --log-file
-web: python manage.py migrate && gunicorn game.wsgi
+web: python manage.py migrate && gunicorn game.wsgi --log-file
